@@ -1,7 +1,7 @@
 from arq import create_pool
 from fastapi import FastAPI
 from arq.connections import RedisSettings
-
+from core.api.router import api_router
 
 app = FastAPI()
 redis = RedisSettings()
@@ -22,7 +22,4 @@ async def shutdown():
     await app.state.redis.close()
 
 
-@app.post("/ingest_document")
-async def root(document_id: str):
-    job_id = await app.state.redis.enqueue_job("ingest_document", document_id)
-    return {"message": "hello"}
+app.include_router(api_router)
