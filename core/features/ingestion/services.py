@@ -1,4 +1,8 @@
-from core.api.schema_public_latest import DocumentsUpdate, DocumentLineItemsInsert
+from core.api.schema_public_latest import (
+    DocumentsUpdate,
+    DocumentLineItemsInsert,
+    Documents,
+)
 from pydantic import ValidationError
 from core.supabase import supabase_client as supabase
 
@@ -22,17 +26,24 @@ def update_document(document_id: str, updates: DocumentsUpdate):
         return response
 
     except Exception as e:
-        print(e)
         raise e
 
 
 def get_document(document_id: str):
     try:
-        response = supabase.table("documents").select("*").eq("id", document_id).execute()
+        response = (
+            supabase.table("documents").select("*").eq("id", document_id).execute()
+        )
         return response
     except Exception as e:
         print(e)
         raise e
+
+
+def insert_document(document: Documents):
+    return (
+        supabase.table("documents").insert(document.model_dump(mode="json")).execute()
+    )
 
 
 def insert_document_line_item(line_item: DocumentLineItemsInsert):
@@ -47,3 +58,7 @@ def insert_document_line_item(line_item: DocumentLineItemsInsert):
     except Exception as e:
         print(e)
         raise e
+
+
+def download_document_file(path: str):
+    return supabase.storage.from_("documents").download(path)

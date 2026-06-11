@@ -37,7 +37,6 @@ def convert_pdf_to_image(pdf_bytes: bytes) -> str:
 
 
 def extract_text_from_document(image_b64: str) -> str:
-
     response = groq.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
@@ -50,7 +49,8 @@ def extract_text_from_document(image_b64: str) -> str:
                             "You are an expert document analyzer. "
                             "Extract all text from the document and return it as a single string. "
                             "Note: This is an expense tracker. If the document is not related to financial expenses, "
-                            "receipts, or invoices, do not bother extracting anything and just return 'NOT_AN_EXPENSE'."
+                            "receipts, or invoices, do not bother extracting anything and just "
+                            "return 'NOT_AN_EXPENSE'."
                         ),
                     },
                     {
@@ -61,12 +61,10 @@ def extract_text_from_document(image_b64: str) -> str:
             }
         ],
     )
-
     return response.choices[0].message.content or ""
 
 
 def structure_extracted_text(text: str) -> LLMExtractionReturnType:
-
     if text == "NOT_AN_EXPENSE":
         return LLMExtractionReturnType(
             is_financial_billing=False, document=None, document_line_items=None
