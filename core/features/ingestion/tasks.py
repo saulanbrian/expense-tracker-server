@@ -39,7 +39,10 @@ async def ingest_document(ctx, document_id: str):
         )
 
     async def run_stage(stage: PipelineStage, func, *args, **kwargs):
+
+        nonlocal current_stage
         current_stage = stage
+
         await send_stage_status(stage.value, StageStatus.IN_PROGRESS)
         res = func(*args, **kwargs)
         if inspect.isawaitable(res):

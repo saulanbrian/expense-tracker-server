@@ -47,7 +47,7 @@ class IngestionPipeline:
             raise Exception("Document not found")
 
         self.document = Documents.model_validate(response.data[0])
-        if self.document.status in ["processing", "extracted", "verrified"]:
+        if self.document.status in ["processing", "extracted", "verified"]:
             return False  # Signal to ignore
 
         await self._run_step(
@@ -100,7 +100,7 @@ class IngestionPipeline:
                 self.document_id,
                 DocumentsUpdate(
                     status="failed",
-                    error_message="File is not a valid finnancial billing document",
+                    error_message="File is not a valid financial billing document",
                 ),
             )
             return "failed"
