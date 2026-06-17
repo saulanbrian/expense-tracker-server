@@ -13,9 +13,9 @@ from core.features.ingestion.services import (
     insert_document_line_item,
 )
 from core.features.ingestion.utils import (
-    convert_pdf_to_image,
-    extract_text_from_document,
-    structure_extracted_text,
+    convert_pdf_to_images,
+    extract_and_structure_from_images,
+    get_ocr_data,
 )
 
 
@@ -27,9 +27,9 @@ class IngestionPipeline:
 
         self.document: Any = None
         self.file_bytes: bytes = b""
-        self.image_b64: str = ""
+        self.images_b64: List[str] = []
+        self.ocr_data: List[List[dict]] = []
         self.structured_data: Any = None
-        self.text: str = ""
 
     async def _run_step(self, step_name: str, func, *args, **kwargs):
         self.current_step = step_name
@@ -65,34 +65,41 @@ class IngestionPipeline:
 
     async def convert(self):
         if self.document.file_type == "application/pdf":
-            self.image_b64 = await self._run_step(
-                "converting_pdf_file", convert_pdf_to_image, self.file_bytes
+            self.images_b64 = await self._run_step(
+                "converting_pdf_file", convert_pdf_to_images, self.file_bytes
             )
 
         elif self.document.file_type in ["image/jpeg", "image/png", "image/webp"]:
 
             def encode_raw_image():
-                return base64.b64encode(self.file_bytes).decode("utf-8")
+                return [base64.b64encode(self.file_bytes).decode("utf-8")]
 
-            self.image_b64 = await self._run_step(
+            self.images_b64 = await self._run_step(
                 "encoding_raw_image", encode_raw_image
             )
         else:
             raise ValueError(f"Unsupported file type: {self.document.file_type}")
 
     async def extract_and_structure(self):
-        self.text = await self._run_step(
-            "extracting_text",
-            extract_text_from_document,
-            self.image_b64,
-        )
         self.structured_data = await self._run_step(
-            "structuring_data",
-            structure_extracted_text,
-            self.text,
+            "extracting_and_structuring_data",
+            extract_and_structure_from_images,
+            self.images_b64,
+            self.ocr_data,
+        )
+
+    async def perform_ocr(self):
+        self.ocr_data = await self._run_step(
+            "performing_ocr", get_ocr_data, self.images_b64
         )
 
     async def save_to_db(self) -> str:
+        print("\n" + "=" * 50)
+        print("📄 [Pipeline] Structured Data Extracted:")
+        print("-" * 50)
+        print(self.structured_data.model_dump_json(indent=2))
+        print("=" * 50 + "\n")
+
         if not self.structured_data.is_financial_billing:
             await self._run_step(
                 "updating_document_status",

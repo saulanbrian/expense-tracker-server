@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "prompt-engineer": {
+      "source": "farmage/opencode-skills",
+      "sourceType": "github",
+      "skillPath": "skills/prompt-engineer/SKILL.md",
+      "computedHash": "cb1d8da1ce5714e46ecdd06867ca36ce6222b05d69a32a1bd8670d89cbc374f9"
+    }
+  }
+}

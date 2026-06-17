@@ -25,7 +25,7 @@ async def ingest_document(ctx, document_id: str):
     current_stage = PipelineStage.RETRIEVING
 
     ##sleep for debugging
-    await asyncio.sleep(5)
+    await asyncio.sleep(3)
 
     async def send_stage_status(section_name: str, status: StageStatus):
         await ctx["redis"].publish(
@@ -57,6 +57,7 @@ async def ingest_document(ctx, document_id: str):
     async def analyzing_stage():
         await pipeline.download()
         await pipeline.convert()
+        await pipeline.perform_ocr()
 
     async def extracting_stage():
         await pipeline.extract_and_structure()

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from pydantic import BaseModel, Field
 
 
@@ -22,11 +22,18 @@ class StrippedDocumentLineItem(BaseModel):
     quantity: Optional[int] = Field(default=None)
     total_price: float = Field(description="The total price for this line item")
     unit_price: Optional[float] = Field(default=None)
+    page_number: int = Field(description="The 1-based page number where this line item is found")
+    bounding_box: Annotated[List[float], Field(min_length=4, max_length=4)] = Field(
+        description="The normalized bounding box coordinates [ymin, xmin, ymax, xmax] from 0 to 1000. REQUIRED. Must be a JSON array of exactly 4 numbers separated by commas.",
+    )
 
 
 class LLMExtractionReturnType(BaseModel):
     is_financial_billing: bool = Field(
         description="set this to True if this is a financial billing document, otherwise False"
+    )
+    layout_description: str = Field(
+        description="A brief description of the document's visual layout (e.g., 'multi-column', 'scattered key-value pairs', 'standard table'). Analyze how the data is organized before extracting."
     )
     document: Optional[StrippedDocument] = Field(
         description="the document header information"
