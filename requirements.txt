@@ -83,4 +83,4 @@ yarl==1.24.2
 zstandard==0.25.0
 easyocr
 opencv-python-headless
-numpy
+numpy<2.0.0
