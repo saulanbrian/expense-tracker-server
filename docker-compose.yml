@@ -1,0 +1,41 @@
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    command: fastapi dev main.py --host 0.0.0.0
+    env_file: .env
+    environment:
+      - REDIS_HOST=redis
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  worker:
+    build: .
+    command: arq core.worker.settings.WorkerSettings
+    env_file: .env
+    environment:
+      - REDIS_HOST=redis
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  tunnel:
+    image: node:alpine
+    # Install localtunnel on the fly inside the node container
+    command: >
+      sh -c "npm install -g localtunnel && 
+             lt --port 8000 --subdomain my-fastapi-app"
+    depends_on:
+      - api
+    network_mode: "service:api"

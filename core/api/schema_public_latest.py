@@ -126,7 +126,7 @@ class DocumentLineItemsInsert(CustomModelInsert):
 
     # Optional fields
     gl_code: str | None = Field(default=None)
-    quantity: int | None = Field(default=None)
+    quantity: float | None = Field(default=None)
     unit_price: Decimal | None = Field(default=None)
     page_number: int | None = Field(default=None)
     bounding_box: list[float] | None = Field(default=None)
@@ -238,7 +238,7 @@ class DocumentLineItemsUpdate(CustomModelUpdate):
     description: str | None = Field(default=None)
     document_id: UUID4 | None = Field(default=None)
     gl_code: str | None = Field(default=None)
-    quantity: int | None = Field(default=None)
+    quantity: float | None = Field(default=None)
     total_price: Decimal | None = Field(default=None)
     unit_price: Decimal | None = Field(default=None)
     page_number: int | None = Field(default=None)

@@ -24,9 +24,6 @@ async def ingest_document(ctx, document_id: str):
     pipeline = IngestionPipeline(ctx, document_id)
     current_stage = PipelineStage.RETRIEVING
 
-    ##sleep for debugging
-    await asyncio.sleep(3)
-
     async def send_stage_status(section_name: str, status: StageStatus):
         await ctx["redis"].publish(
             ctx["job_id"],
@@ -94,6 +91,7 @@ async def ingest_document(ctx, document_id: str):
 
     except Exception as e:
         await send_stage_status(current_stage.value, StageStatus.FAILED)
+        await pipeline.set_failed(str(e))
         return {
             "ingestion_status": "failed",
             "error_stage": current_stage.value,

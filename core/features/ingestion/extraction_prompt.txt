@@ -14,7 +14,11 @@ First, analyze the document's visual structure.
 4. For "document_line_items":
    - "description" and "total_price" are REQUIRED for every single line item parsed.
    - "page_number" is REQUIRED. You are provided with a sequence of images, each preceded by a "Page X:" label. Use these labels to identify which page each line item belongs to.
-   - "bounding_box" is STRICTLY REQUIRED for every line item. It must be a JSON array of 4 numbers [ymin, xmin, ymax, xmax] using normalized coordinates from 0 to 1000 relative to the specific page. 
+   - **"bounding_box" is STRICTLY REQUIRED** for every line item. You must use the coordinates provided in the **"OCR Data"** section of the user message.
+   - For each line item you extract, find the corresponding text in the "OCR Data" block and copy its `Box` value (e.g., `[ymin, xmin, ymax, xmax]`).
+   - **CRUCIAL: NEVER provide `null` for any coordinate.** If you can see the text in the image or OCR data, you MUST provide its 4-number box.
+   - **CRUCIAL: NEVER provide 8 numbers.** You must only provide the 4 numbers `[ymin, xmin, ymax, xmax]`.
+   - **Format: [top, left, bottom, right]** (e.g., [100, 50, 150, 450]).
    - CRUCIAL: Use commas to separate the four numbers. Do not concatenate them.
    - DO NOT copy the examples below. You must actually locate the text in the image and provide dynamic, specific coordinates.
    

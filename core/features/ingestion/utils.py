@@ -7,7 +7,7 @@ import numpy as np
 from typing import List, Optional
 from PIL import Image
 from pdf2image import convert_from_bytes
-import easyocr
+from rapidocr_onnxruntime import RapidOCR
 
 from core.api.schema_public_latest import Documents
 from core.openai import groq
@@ -16,14 +16,14 @@ from .models import LLMExtractionReturnType
 load_dotenv()
 
 # Global OCR engine initialized lazily
-_ocr_engine: Optional[easyocr.Reader] = None
+_ocr_engine: Optional[RapidOCR] = None
 
 
-def get_ocr_engine() -> easyocr.Reader:
+def get_ocr_engine() -> RapidOCR:
     global _ocr_engine
     if _ocr_engine is None:
-        # Initialize EasyOCR reader. GPU=False for portability.
-        _ocr_engine = easyocr.Reader(['en'], gpu=False, verbose=False)
+        # Initialize RapidOCR engine
+        _ocr_engine = RapidOCR()
     return _ocr_engine
 
 
@@ -38,18 +38,26 @@ def get_ocr_data(images_b64: List[str]) -> List[List[dict]]:
     for img_b64 in images_b64:
         img_bytes = base64.b64decode(img_b64)
         img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        
+        # Resize image if it's too large to save memory
+        max_size = 1600
+        if max(img.size) > max_size:
+            ratio = max_size / max(img.size)
+            new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+            img = img.resize(new_size, Image.Resampling.LANCZOS)
+            
         img_np = np.array(img)
 
-        # EasyOCR.readtext returns list of (box, text, confidence)
-        # box is [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
-        ocr_result = ocr.readtext(img_np)
+        # RapidOCR returns list of (box, text, confidence)
+        # box is [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+        ocr_result, _ = ocr(img_np)
 
         page_items = []
         if ocr_result:
             width, height = img.size
 
             for box, text, confidence in ocr_result:
-                # EasyOCR returns box as list of 4 points [(x,y),...]
+                # box is already a list of 4 points [[x,y],...]
                 xs = [p[0] for p in box]
                 ys = [p[1] for p in box]
 
@@ -127,28 +135,25 @@ def extract_and_structure_from_images(
             }
         )
 
-    response = groq.beta.chat.completions.parse(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": content},  # type: ignore
-        ],
-        response_format=LLMExtractionReturnType,
-    )
+    try:
+        response = groq.beta.chat.completions.parse(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content},  # type: ignore
+            ],
+            response_format=LLMExtractionReturnType,
+        )
+    except Exception as e:
+        # Handle API errors concisely
+        error_msg = str(e)
+        if "json_validate_failed" in error_msg:
+            raise Exception("LLM output failed schema validation. Check model types/quantities.")
+        raise e
 
     parsed = response.choices[0].message.parsed
     if parsed is None:
         refusal = getattr(response.choices[0].message, "refusal", None)
-        raw_content = getattr(response.choices[0].message, "content", "No content")
-
-        print("\n" + "!" * 50)
-        print("❌ [Extraction Error] Model failed to provide structured output.")
-        if refusal:
-            print(f"Refusal Reason: {refusal}")
-        else:
-            print(f"Raw Content: {raw_content}")
-        print("!" * 50 + "\n")
-
         raise Exception(f"Failed to structure extracted text. Refusal: {refusal}")
 
     return parsed

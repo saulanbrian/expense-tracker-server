@@ -33,18 +33,21 @@ class IngestionPipeline:
 
     async def _run_step(self, step_name: str, func, *args, **kwargs):
         self.current_step = step_name
-        print(f"🚀 [Pipeline] Starting step: '{step_name}'...")
-        result = func(*args, **kwargs)
-        if inspect.isawaitable(result):
-            result = await result
-        return result
+        try:
+            result = func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                result = await result
+            return result
+        except Exception as e:
+            print(f"Error in step '{step_name}': {str(e)}", flush=True)
+            raise e
 
     async def retrieve_and_lock(self):
         response = await self._run_step(
             "retrieving_document", get_document, self.document_id
         )
         if not response.data:
-            raise Exception("Document not found")
+            raise Exception(f"Document {self.document_id} not found in database")
 
         self.document = Documents.model_validate(response.data[0])
         if self.document.status in ["processing", "extracted", "verified"]:
@@ -93,13 +96,15 @@ class IngestionPipeline:
             "performing_ocr", get_ocr_data, self.images_b64
         )
 
-    async def save_to_db(self) -> str:
-        print("\n" + "=" * 50)
-        print("📄 [Pipeline] Structured Data Extracted:")
-        print("-" * 50)
-        print(self.structured_data.model_dump_json(indent=2))
-        print("=" * 50 + "\n")
+    async def set_failed(self, error_message: str):
+        await self._run_step(
+            "marking_failed",
+            update_document,
+            self.document_id,
+            DocumentsUpdate(status="failed", error_message=error_message),
+        )
 
+    async def save_to_db(self) -> str:
         if not self.structured_data.is_financial_billing:
             await self._run_step(
                 "updating_document_status",
