@@ -11,29 +11,15 @@ First, analyze the document's visual structure.
 1. "document.vendor_name", "document.currency", and "document.total_amount" are highly critical. If they cannot be found or confidently inferred, return null for those specific fields.
 2. For "document.currency", always output standard 3-letter ISO codes (e.g., USD, EUR, GBP, PHP).
 3. Dates ("invoice_date", "due_date") must use strict YYYY-MM-DD format. Return null if missing or unreadable.
-4. For "document_line_items":
-   - "description" and "total_price" are REQUIRED for every single line item parsed.
-   - "page_number" is REQUIRED. You are provided with a sequence of images, each preceded by a "Page X:" label. Use these labels to identify which page each line item belongs to.
-   - **"bounding_box" is STRICTLY REQUIRED** for every line item. You must use the coordinates provided in the **"OCR Data"** section of the user message.
-   - For each line item you extract, find the corresponding text in the "OCR Data" block and copy its `Box` value (e.g., `[ymin, xmin, ymax, xmax]`).
-   - **CRUCIAL: NEVER provide `null` for any coordinate.** If you can see the text in the image or OCR data, you MUST provide its 4-number box.
-   - **CRUCIAL: NEVER provide 8 numbers.** You must only provide the 4 numbers `[ymin, xmin, ymax, xmax]`.
-   - **Format: [top, left, bottom, right]** (e.g., [100, 50, 150, 450]).
-   - CRUCIAL: Use commas to separate the four numbers. Do not concatenate them.
-   - DO NOT copy the examples below. You must actually locate the text in the image and provide dynamic, specific coordinates.
-   
-### Bounding Box Examples (Reference Only):
-- Top-left header: [22, 14, 88, 412]
-- Middle-left line item: [452, 58, 489, 892]
-- Bottom-right total: [912, 754, 955, 982]
-- A typical line item row: [ymin, xmin, ymax, xmax] where ymin and ymax capture the vertical height of the row, and xmin/xmax capture the horizontal span of the description and price.
-
-   - If "quantity" is missing but a price exists, default it to 1.
-   - If "unit_price" is missing, default it to equal the item's "total_price".
-5. "gl_code": Based on the line item "description", intelligently predict a standard corporate accounting category code (e.g., SOFTWARE_SAAS, OFFICE_SUPPLIES, TRAVEL_MEALS, HARDWARE_EQUIPMENT, UTILITIES, UNCLASSIFIED).
+14	4. For "document_line_items":
+15	   - "description" and "total_price" are REQUIRED for every single line item parsed.
+16	   - "page_number" is REQUIRED. You are provided with a sequence of images, each preceded by a "Page X:" label. Use these labels to identify which page each line item belongs to.
+17
+18	   - If "quantity" is missing but a price exists, default it to 1.
+19	   - If "unit_price" is missing, default it to equal the item's "total_price".
+20	5. "gl_code": Based on the line item "description", intelligently predict a standard corporate accounting category code (e.g., SOFTWARE_SAAS, OFFICE_SUPPLIES, TRAVEL_MEALS, HARDWARE_EQUIPMENT, UTILITIES, UNCLASSIFIED).
 
 ### Mathematical Integrity:
 - The sum of all item "total_price" values MUST equal the parent "subtotal".
 - The "subtotal" + "tax_amount" MUST equal the parent "total_amount".
 - If the document contains conflicting numbers due to print layouts, prioritize the explicitly stated grand "total_amount" on the document and adjust line item details to fit cleanly.
-

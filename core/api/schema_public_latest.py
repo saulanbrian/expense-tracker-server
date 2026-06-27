@@ -47,7 +47,6 @@ class DocumentLineItemsBaseSchema(CustomModel):
     total_price: Decimal
     unit_price: Decimal | None = Field(default=None)
     page_number: int | None = Field(default=None)
-    bounding_box: list[float] | None = Field(default=None)
 
 
 class DocumentsBaseSchema(CustomModel):
@@ -129,7 +128,6 @@ class DocumentLineItemsInsert(CustomModelInsert):
     quantity: float | None = Field(default=None)
     unit_price: Decimal | None = Field(default=None)
     page_number: int | None = Field(default=None)
-    bounding_box: list[float] | None = Field(default=None)
 
 
 class DocumentsInsert(CustomModelInsert):
@@ -242,7 +240,6 @@ class DocumentLineItemsUpdate(CustomModelUpdate):
     total_price: Decimal | None = Field(default=None)
     unit_price: Decimal | None = Field(default=None)
     page_number: int | None = Field(default=None)
-    bounding_box: list[float] | None = Field(default=None)
 
 
 class DocumentsUpdate(CustomModelUpdate):

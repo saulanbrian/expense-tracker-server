@@ -1,21 +1,21 @@
 import base64
 import inspect
 from typing import Any, List
+
 from core.api.schema_public_latest import (
+    DocumentLineItemsInsert,
     Documents,
     DocumentsUpdate,
-    DocumentLineItemsInsert,
 )
 from core.features.ingestion.services import (
-    get_document,
-    update_document,
     download_document_file,
+    get_document,
     insert_document_line_item,
+    update_document,
 )
 from core.features.ingestion.utils import (
     convert_pdf_to_images,
     extract_and_structure_from_images,
-    get_ocr_data,
 )
 
 
@@ -28,7 +28,6 @@ class IngestionPipeline:
         self.document: Any = None
         self.file_bytes: bytes = b""
         self.images_b64: List[str] = []
-        self.ocr_data: List[List[dict]] = []
         self.structured_data: Any = None
 
     async def _run_step(self, step_name: str, func, *args, **kwargs):
@@ -88,12 +87,6 @@ class IngestionPipeline:
             "extracting_and_structuring_data",
             extract_and_structure_from_images,
             self.images_b64,
-            self.ocr_data,
-        )
-
-    async def perform_ocr(self):
-        self.ocr_data = await self._run_step(
-            "performing_ocr", get_ocr_data, self.images_b64
         )
 
     async def set_failed(self, error_message: str):

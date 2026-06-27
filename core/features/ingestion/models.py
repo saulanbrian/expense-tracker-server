@@ -1,4 +1,5 @@
-from typing import List, Optional, Annotated
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -22,9 +23,8 @@ class StrippedDocumentLineItem(BaseModel):
     quantity: Optional[float] = Field(default=None)
     total_price: float = Field(description="The total price for this line item")
     unit_price: Optional[float] = Field(default=None)
-    page_number: int = Field(description="The 1-based page number where this line item is found")
-    bounding_box: Annotated[List[float], Field(min_length=4, max_length=4)] = Field(
-        description="The normalized bounding box coordinates [ymin, xmin, ymax, xmax] from 0 to 1000. MUST be exactly 4 numbers. Do not provide 8 numbers.",
+    page_number: int = Field(
+        description="The 1-based page number where this line item is found"
     )
 
 

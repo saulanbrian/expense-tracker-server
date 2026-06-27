@@ -54,7 +54,6 @@ async def ingest_document(ctx, document_id: str):
     async def analyzing_stage():
         await pipeline.download()
         await pipeline.convert()
-        await pipeline.perform_ocr()
 
     async def extracting_stage():
         await pipeline.extract_and_structure()
