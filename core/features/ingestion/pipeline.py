@@ -1,5 +1,6 @@
 import base64
 import inspect
+import traceback
 from typing import Any, List
 
 from core.api.schema_public_latest import (
@@ -14,6 +15,7 @@ from core.features.ingestion.services import (
     update_document,
 )
 from core.features.ingestion.utils import (
+    _get_usd_rate,
     convert_pdf_to_images,
     extract_and_structure_from_images,
 )
@@ -38,7 +40,8 @@ class IngestionPipeline:
                 result = await result
             return result
         except Exception as e:
-            print(f"Error in step '{step_name}': {str(e)}", flush=True)
+            print(f"Error in step '{step_name}':", flush=True)
+            traceback.print_exc()
             raise e
 
     async def retrieve_and_lock(self):
@@ -103,23 +106,23 @@ class IngestionPipeline:
                 "updating_document_status",
                 update_document,
                 self.document_id,
-                DocumentsUpdate(
-                    status="failed",
-                    error_message="File is not a valid financial billing document",
-                ),
+                DocumentsUpdate(status="failed", error_message="File is not a valid financial billing document"),
             )
             return "failed"
 
-        doc_updates = DocumentsUpdate(
-            status="extracted",
-            **self.structured_data.document.model_dump(exclude_unset=True),
-        )
-        await self._run_step(
-            "update_document",
-            update_document,
-            self.document_id,
-            doc_updates,
-        )
+        doc_fields = self.structured_data.document.model_dump(exclude_unset=True) if self.structured_data.document else {}
+
+        doc = self.structured_data.document
+        if doc and doc.currency and doc.total_amount and doc.invoice_date:
+            try:
+                rate = _get_usd_rate(doc.currency, doc.invoice_date)
+                doc_fields["usd_rate_as_of_billing_date"] = rate
+                doc_fields["usd_conversion_total"] = round(doc.total_amount * rate, 2)
+            except Exception:
+                pass
+
+        doc_updates = DocumentsUpdate(status="extracted", **doc_fields)
+        await self._run_step("update_document", update_document, self.document_id, doc_updates)
 
         if self.structured_data.document_line_items:
             for item in self.structured_data.document_line_items:

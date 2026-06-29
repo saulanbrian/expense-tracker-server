@@ -2,6 +2,7 @@ import base64
 import io
 from typing import List
 
+import httpx
 from dotenv import load_dotenv
 from pdf2image import convert_from_bytes
 
@@ -9,7 +10,29 @@ from core.openai import groq
 
 from .models import LLMExtractionReturnType
 
-load_dotenv()
+load_dotenv(override=True)
+
+FRANKFURTER_API = "https://api.frankfurter.dev"
+
+
+def _get_usd_rate(currency: str, billing_date: str) -> float:
+    currency = currency.upper().strip()
+    if currency == "USD":
+        return 1.0
+
+    url = f"{FRANKFURTER_API}/v2/rate/{currency}/USD"
+    params = {"date": billing_date}
+
+    with httpx.Client(timeout=10) as client:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+
+    return resp.json()["rate"]
+
+
+def convert_to_usd(currency: str, amount: float, billing_date: str) -> float:
+    rate = _get_usd_rate(currency, billing_date)
+    return round(amount * rate, 2)
 
 
 def convert_pdf_to_images(pdf_bytes: bytes) -> List[str]:

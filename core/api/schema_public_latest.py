@@ -73,6 +73,8 @@ class DocumentsBaseSchema(CustomModel):
     total_amount: Decimal | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
     uploaded_by: UUID4 | None = Field(default=None)
+    usd_conversion_total: Decimal | None = Field(default=None)
+    usd_rate_as_of_billing_date: float | None = Field(default=None)
     vendor_name: str | None = Field(default=None)
 
 
@@ -171,6 +173,8 @@ class DocumentsInsert(CustomModelInsert):
     total_amount: Decimal | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
     uploaded_by: UUID4 | None = Field(default=None)
+    usd_conversion_total: Decimal | None = Field(default=None)
+    usd_rate_as_of_billing_date: float | None = Field(default=None)
     vendor_name: str | None = Field(default=None)
 
 
@@ -281,6 +285,8 @@ class DocumentsUpdate(CustomModelUpdate):
     total_amount: Decimal | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
     uploaded_by: UUID4 | None = Field(default=None)
+    usd_conversion_total: Decimal | None = Field(default=None)
+    usd_rate_as_of_billing_date: float | None = Field(default=None)
     vendor_name: str | None = Field(default=None)
 
 

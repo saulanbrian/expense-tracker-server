@@ -1,4 +1,5 @@
 import inspect
+import traceback
 from os import pipe
 from .pipeline import IngestionPipeline
 from enum import Enum
@@ -89,6 +90,7 @@ async def ingest_document(ctx, document_id: str):
         return {"ingestion_status": "success"}
 
     except Exception as e:
+        traceback.print_exc()
         await send_stage_status(current_stage.value, StageStatus.FAILED)
         await pipeline.set_failed(str(e))
         return {
