@@ -31,7 +31,7 @@ async def extract_with_llm(images_b64: List[str]) -> LLMExtractionReturnType:
 
     try:
         response = groq.beta.chat.completions.parse(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model="google/gemma-4-26b-a4b-it:free",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": content},  # type:ignore

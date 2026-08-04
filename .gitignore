@@ -3,4 +3,5 @@ dump.rdb
 env 
 *.pyc
 __pycache__
+.zed/
 
