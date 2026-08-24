@@ -1,4 +1,4 @@
-from core.api.schema_public_latest import DocumentLineItemsInsert
+from core.api.schemas import DocumentLineItemsInsert
 from core.supabase import supabase_client as supabase
 
 

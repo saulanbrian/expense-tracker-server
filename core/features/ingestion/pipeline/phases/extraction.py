@@ -1,10 +1,17 @@
 from typing import List
 
-from core.features.ingestion.pipeline.models import LLMExtractionReturnType
-from core.features.ingestion.pipeline.tracker import run_step
-from core.openai import groq
+from openai.types.chat import ChatCompletionMessageParam
 
-PROMPT_PATH = "core/features/ingestion/pipeline/extraction_prompt.txt"
+from core.features.ingestion.pipeline.models import LLMExtractionReturnType
+from core.llm import TEXT_FALLBACK_CHAIN, VISION_FALLBACK_CHAIN, call_llm
+
+EXTRACTION_PROMPT_PATH = "core/features/ingestion/pipeline/extraction_prompt.txt"
+TEXT_EXTRACTION_PROMPT_PATH = "core/features/ingestion/pipeline/text_extraction_prompt.txt"
+
+
+def _load_prompt(path: str) -> str:
+    with open(path) as f:
+        return f.read()
 
 
 def _build_image_content(images_b64: List[str]) -> List[dict]:
@@ -20,45 +27,57 @@ def _build_image_content(images_b64: List[str]) -> List[dict]:
     return content
 
 
-def _load_prompt() -> str:
-    with open(PROMPT_PATH) as f:
-        return f.read()
+def _build_text_content(extracted_text: str) -> str:
+    return extracted_text
 
 
-async def extract_with_llm(images_b64: List[str]) -> LLMExtractionReturnType:
-    content = _build_image_content(images_b64)
-    system_prompt = _load_prompt()
+async def extract_with_text_llm(extracted_text: str) -> LLMExtractionReturnType:
+    system_prompt = _load_prompt(TEXT_EXTRACTION_PROMPT_PATH)
+    text_content = _build_text_content(extracted_text)
 
-    try:
-        response = groq.beta.chat.completions.parse(
-            model="google/gemma-4-26b-a4b-it:free",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": content},  # type:ignore
-            ],
-            response_format=LLMExtractionReturnType,
-        )
-    except Exception as e:
-        if "json_validate_failed" in str(e):
-            raise Exception(
-                "LLM output failed schema validation. Check model types/quantities."
-            )
-        raise e
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": text_content},
+    ]
 
-    parsed = response.choices[0].message.parsed
-    if parsed is None:
-        refusal = getattr(response.choices[0].message, "refusal", None)
-        raise Exception(f"Failed to structure extracted text. Refusal: {refusal}")
-
-    return parsed
-
-
-async def run_extraction_phase(ctx, tracker, publish):
-    phase = "extracting_data"
-    await publish(phase, "in_progress")
-
-    ctx["structured_data"] = await run_step(
-        tracker, phase, "extract_with_llm", extract_with_llm, ctx["images_b64"]
+    return call_llm(
+        response_format=LLMExtractionReturnType,
+        messages=messages,
+        chain=TEXT_FALLBACK_CHAIN,
     )
 
-    await publish(phase, "completed")
+
+async def extract_with_vision_llm(images_b64: List[str]) -> LLMExtractionReturnType:
+    content = _build_image_content(images_b64)
+    system_prompt = _load_prompt(EXTRACTION_PROMPT_PATH)
+
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": content},  # type:ignore
+    ]
+
+    return call_llm(
+        response_format=LLMExtractionReturnType,
+        messages=messages,
+        chain=VISION_FALLBACK_CHAIN,
+    )
+
+
+async def run_extraction_phase(ctx, update_status):
+    phase = "extracting_data"
+    await update_status(phase, "in_progress")
+
+    extracted_text = ctx.get("extracted_text", "")
+    images_b64 = ctx["images_b64"]
+
+    if extracted_text:
+        result = await extract_with_text_llm(extracted_text)
+        if not result.needs_vision:
+            ctx["structured_data"] = result
+            await update_status(phase, "completed")
+            return
+        ctx["extraction_reason"] = result.reason
+
+    ctx["structured_data"] = await extract_with_vision_llm(images_b64)
+
+    await update_status(phase, "completed")

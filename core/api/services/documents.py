@@ -1,4 +1,4 @@
-from core.api.schema_public_latest import DocumentsUpdate, Documents
+from core.api.schemas import Documents, DocumentsUpdate
 from pydantic import ValidationError
 from core.supabase import supabase_client as supabase
 

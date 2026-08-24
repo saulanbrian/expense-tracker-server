@@ -1,7 +1,9 @@
 from arq.connections import ArqRedis
-from fastapi import APIRouter, Depends, WebSocket
-import json
+from fastapi import APIRouter, Depends
 
+from core.api.schemas import DocumentsUpdate
+from core.api.services import create_ingestion_job, update_document
+from core.api.services.ingestion_jobs import get_latest_ingestion_job
 from core.dependencies import get_redis_pool
 
 router = APIRouter(
@@ -9,27 +11,23 @@ router = APIRouter(
     tags=["ingestion"],
 )
 
+ACTIVE_STATUSES = {"queued", "running"}
+
 
 @router.post("/")
 async def process_document(
     document_id: str, redis_pool: ArqRedis = Depends(get_redis_pool)
 ):
-    task = await redis_pool.enqueue_job("ingest_document", document_id)
-    return {"task_id": task.job_id}
+    existing_job = get_latest_ingestion_job(document_id)
 
+    if existing_job and existing_job.status in ACTIVE_STATUSES:
+        return {
+            "task_id": existing_job.id,
+            "duplicate": True,
+            "message": "A job is already in progress for this document",
+        }
 
-@router.websocket("/ws/{job_id}")
-async def ws(job_id: str, websocket: WebSocket):
-    redis = websocket.app.state.redis
-    await websocket.accept()
-
-    pubsub = redis.pubsub()
-    await pubsub.subscribe(job_id)
-
-    try:
-        async for message in pubsub.listen():
-            if message["type"] == "message":
-                data = json.loads(message["data"].decode("utf-8"))
-                await websocket.send_json(data)
-    except Exception as e:
-        print(e)
+    job = create_ingestion_job(document_id)
+    update_document(document_id, DocumentsUpdate(status="queued"))
+    await redis_pool.enqueue_job("ingest_document", document_id, job.id)
+    return {"task_id": job.id, "duplicate": False}

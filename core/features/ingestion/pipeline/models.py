@@ -29,10 +29,19 @@ class StrippedDocumentLineItem(BaseModel):
 
 
 class LLMExtractionReturnType(BaseModel):
+    needs_vision: bool = Field(
+        default=False,
+        description="Set to True if the text is garbled, incomplete, or appears to be from a scanned document that needs vision processing"
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        description="If needs_vision is True, explain why (e.g., 'Text appears garbled', 'Missing critical fields', 'Likely scanned document')"
+    )
     is_financial_billing: bool = Field(
         description="set this to True if this is a financial billing document, otherwise False"
     )
-    layout_description: str = Field(
+    layout_description: Optional[str] = Field(
+        default=None,
         description="A brief description of the document's visual layout (e.g., 'multi-column', 'scattered key-value pairs', 'standard table'). Analyze how the data is organized before extracting."
     )
     document: Optional[StrippedDocument] = Field(

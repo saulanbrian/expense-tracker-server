@@ -3,16 +3,12 @@ from uuid import UUID
 
 import httpx
 
-from core.api.schema_public_latest import (
-    DocumentLineItemsInsert,
-    DocumentsUpdate,
-)
+from core.api.schemas import DocumentLineItemsInsert, DocumentsUpdate
 from core.api.services import (
     insert_document_line_item,
     update_document,
 )
 from core.features.ingestion.pipeline.models import LLMExtractionReturnType
-from core.features.ingestion.pipeline.tracker import run_step
 
 FRANKFURTER_API = "https://api.frankfurter.dev"
 
@@ -50,7 +46,7 @@ async def enrich_document(data: LLMExtractionReturnType) -> Dict[str, Any]:
 
 
 async def save_document(document_id: str, doc_fields: Dict[str, Any]) -> None:
-    doc_updates = DocumentsUpdate(status="extracted", **doc_fields)
+    doc_updates = DocumentsUpdate(status="extracted", error_message=None, **doc_fields)
     update_document(document_id, doc_updates)
 
 
@@ -65,26 +61,13 @@ async def save_line_items(document_id: UUID, data: LLMExtractionReturnType) -> N
         insert_document_line_item(line_item)
 
 
-async def run_drafting_phase(ctx, tracker, publish):
+async def run_drafting_phase(ctx, update_status):
     phase = "drafting_document"
-    await publish(phase, "in_progress")
+    await update_status(phase, "in_progress")
 
-    await run_step(
-        tracker, phase, "validate_document", validate_document, ctx["structured_data"]
-    )
-    doc_fields = await run_step(
-        tracker, phase, "enrich_document", enrich_document, ctx["structured_data"]
-    )
-    await run_step(
-        tracker, phase, "save_document", save_document, ctx["document_id"], doc_fields
-    )
-    await run_step(
-        tracker,
-        phase,
-        "save_line_items",
-        save_line_items,
-        ctx["document"].id,
-        ctx["structured_data"],
-    )
+    await validate_document(ctx["structured_data"])
+    doc_fields = await enrich_document(ctx["structured_data"])
+    await save_document(ctx["document_id"], doc_fields)
+    await save_line_items(ctx["document"].id, ctx["structured_data"])
 
-    await publish(phase, "completed")
+    await update_status(phase, "completed")
