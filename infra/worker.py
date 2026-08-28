@@ -3,7 +3,7 @@ import os
 from arq.connections import RedisSettings
 from arq.typing import WorkerSettingsBase
 
-from core.features.ingestion.pipeline.task import ingest_document
+from features.ingestion.pipeline.task import ingest_document
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 

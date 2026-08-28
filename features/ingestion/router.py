@@ -1,10 +1,8 @@
-from arq.connections import ArqRedis
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Request
 
-from core.api.schemas import DocumentsUpdate
-from core.api.services import create_ingestion_job, update_document
-from core.api.services.ingestion_jobs import get_latest_ingestion_job
-from core.dependencies import get_redis_pool
+from domain.schemas import DocumentsUpdate
+from services.ingestion_jobs import create_ingestion_job, get_latest_ingestion_job
+from services.documents import update_document
 
 router = APIRouter(
     prefix="/ingestion",
@@ -15,9 +13,7 @@ ACTIVE_STATUSES = {"queued", "running"}
 
 
 @router.post("/")
-async def process_document(
-    document_id: str, redis_pool: ArqRedis = Depends(get_redis_pool)
-):
+async def process_document(document_id: str, request: Request):
     existing_job = get_latest_ingestion_job(document_id)
 
     if existing_job and existing_job.status in ACTIVE_STATUSES:
@@ -29,5 +25,5 @@ async def process_document(
 
     job = create_ingestion_job(document_id)
     update_document(document_id, DocumentsUpdate(status="queued"))
-    await redis_pool.enqueue_job("ingest_document", document_id, job.id)
+    await request.app.state.arq_redis.enqueue_job("ingest_document", document_id, job.id)
     return {"task_id": job.id, "duplicate": False}

@@ -1,6 +1,6 @@
-from core.api.schemas import Documents, DocumentsUpdate
+from domain.schemas import Documents, DocumentsUpdate
 from pydantic import ValidationError
-from core.supabase import supabase_client as supabase
+from infra.db import supabase_client as supabase
 
 
 def update_document(document_id: str, updates: DocumentsUpdate):

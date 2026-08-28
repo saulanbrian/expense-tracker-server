@@ -1,7 +1,7 @@
 import datetime
 
-from core.api.schemas import IngestionJob
-from core.supabase import supabase_client as supabase
+from domain.schemas import IngestionJob
+from infra.db import supabase_client as supabase
 
 
 def create_ingestion_job(document_id: str) -> IngestionJob:

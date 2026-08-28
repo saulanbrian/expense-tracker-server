@@ -12,7 +12,7 @@ gemini_key = os.getenv("GEMINI_API_KEY")
 if not openrouter_key:
     raise Exception("Missing OPENROUTER_API_KEY")
 
-client = OpenAI(
+openrouter_client = OpenAI(
     api_key=openrouter_key,
     base_url="https://openrouter.ai/api/v1",
 )

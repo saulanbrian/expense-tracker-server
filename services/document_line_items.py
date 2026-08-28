@@ -1,5 +1,13 @@
-from core.api.schemas import DocumentLineItemsInsert
-from core.supabase import supabase_client as supabase
+from domain.schemas import DocumentLineItemsInsert
+from infra.db import supabase_client as supabase
+
+
+def delete_document_line_items(document_id: str):
+    try:
+        return supabase.table("document_line_items").delete().eq("document_id", document_id).execute()
+    except Exception as e:
+        print(e)
+        raise e
 
 
 def insert_document_line_item(line_item: DocumentLineItemsInsert):
