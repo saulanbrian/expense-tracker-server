@@ -17,3 +17,4 @@ websockets
 python-multipart
 httpx
 google-generativeai
+google-genai
