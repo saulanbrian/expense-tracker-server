@@ -20,7 +20,7 @@ from services.ingestion_jobs import (
 logger = logging.getLogger(__name__)
 
 
-async def ingest_document(arq_ctx, document_id: str, job_id: str):
+async def ingest_document(ctx, document_id: str, job_id: str):
     pipe_ctx = PipelineContext(document_id=document_id)
 
     async def update_status(phase: str, status: str):
