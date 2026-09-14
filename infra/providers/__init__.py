@@ -19,7 +19,7 @@ TEXT_FALLBACK_CHAIN = [
 ]
 
 VISION_FALLBACK_CHAIN = [
-    ModelConfig("nvidia/nemotron-nano-12b-v2-vl:free", "openrouter"),
+    ModelConfig("google/gemma-4-31b-it:free", "openrouter"),
     ModelConfig("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "openrouter"),
     ModelConfig("gemini-3.6-flash", "gemini"),
 ]

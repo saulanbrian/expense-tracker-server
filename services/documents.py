@@ -40,5 +40,11 @@ def insert_document(document: Documents):
     )
 
 
+def upload_document_file(path: str, file_bytes: bytes, content_type: str):
+    return supabase.storage.from_("documents").upload(
+        path, file_bytes, {"content-type": content_type}
+    )
+
+
 def download_document_file(path: str):
     return supabase.storage.from_("documents").download(path)
